@@ -1,0 +1,70 @@
+close all 
+clear all
+clc
+
+load('range_data.mat') % to read file
+range = -1*data(:,1); % Inversion due to Amplifier gain is negative
+ref = -1*data(:,2); % Inversion due to Amplifier gain is negative
+N_total = length(range); % Total number of samples in positive chrip read file
+T_max = N_total/fs;
+%T1 = N_total/fs;
+%range_positive_chrip = zeros(N_total/2,1);
+x=1;
+for i = 1:N_total
+    if (ref(i)>0)
+        range_positive_chirp(x,1) = range(i); % this is for the positive chrip 
+        % test(x,1)=ref(i); this is for testing positive chrips 
+        x = x+1;  
+    end
+end
+%test=range_positive_chrip';% for testing this 
+N_total = length(range_positive_chirp); % Total number of samples in positive chrip read file
+T = N_total/fs; % Total time duration of signals in read file
+
+Tp=20*10^-3; % Tp duration of each window
+N=Tp*fs; % Number of sample in each row in time domain
+M_sweeps = round(T/Tp)-1; % Number of rows in time domain
+
+for i = 1:M_sweeps
+    matrix_time(i,:) = range_positive_chirp(1 + N*(i-1):i*N); % assiging amplitude
+end
+%% Performing the MS(Mean Substract) clutter rejection
+for i = 1:N
+   % Ms_mean = mean(matrix_time(:,i));% Mean accross each column 
+   % matrix_time(:,i) = matrix_time(:,i) - Ms_mean; % MS clutter 
+end
+% %% Performing 2 pulse MTI
+% for i = 1:M_sweeps
+%     if(i<M_sweeps)
+%         matrix_time(i+1,:) = matrix_time(i+1,:)-matrix_time(i,:); % on each row
+%     end
+% end
+%% Performing zero padding  and IFFT in time domain matrix
+for i = 1:M_sweeps
+    matrix_freq(i,:) = 20*log10(abs(ifft(matrix_time(i,:),4*N))); % on each row
+end
+%% In frequency domain divide the into 2 half
+F_max = fs/2; % This is for FFT matrix half
+N_freq = length(matrix_freq)/2; % Nyquist theorem 
+
+for i = 1:M_sweeps
+    matrix_freq_halved(i,:) = matrix_freq(i,1:N_freq);
+end
+max_matrix = max(max(matrix_freq_halved));
+matrix_freq_halved = matrix_freq_halved-max_matrix; % Perform normalization
+f_start = 2.408*10^9; % start frequency
+f_stop = 2.495*10^9; % Stop frequency
+delta_f = f_stop-f_start;
+c = 3*10^8; % speed of light (m/s)
+delta_R = c/(2*delta_f); % 
+R_max = N_freq*delta_R/2; % 
+range_array = linspace(0,R_max,N_freq);
+time_array = linspace(0,T_max,M_sweeps);
+
+imagesc(range_array,time_array,matrix_freq_halved,[-50,0])
+xlabel('Range (m)')
+ylabel('Time (s)')
+xlim_inf = 0;
+xlim_sup = 100;
+xlim([xlim_inf xlim_sup])
+colorbar

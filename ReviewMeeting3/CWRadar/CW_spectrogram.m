@@ -1,4 +1,4 @@
-function [times, velocities] = CW_Spectrogram(data)
+function [times, velocities] = CW_spectrogram(data)
 %CW_RADAR_ALGORITHM Summary of this function goes here
 %   Detailed explanation goes here
 fs = 44100;
@@ -40,9 +40,37 @@ xlabel('velocity(m/s)');
 xlim([0 30])
 ylabel('Time(s)')
 colorbar
-[~,I] = max(matFby2');
-velocities = v_array(I);
-velocities = velocities(velocities<200)
-times = time_array(velocities<200)
+%% 
+
+    Nmax =3
+    [Tp,~] = islocalmax(matFby2,2,'MaxNumExtrema',Nmax);
+    ranges = zeros(size(Tp,1),Nmax);
+    for i = 1:size(Tp,1)
+       ranges(i,:) = range_array(Tp(i,:)) ;
+    end
+    figure()
+    subplot(2,1,1);
+    hold on
+    for i = 1:Nmax 
+        scatter(time_array,ranges(:,i),'x')
+    end
+    xlabel('Range(m)','FontName','Times')
+    ylabel('Time(s)','FontName','Times')
+    title('FMCW Radar Local and global maximum','FontName','Times');
+    set(gca,'FontSize',10,'FontWeight','bold');
+    ylim_inf = 0;
+    ylim_sup = 100;
+    ylim([ylim_inf ylim_sup])  
+    % global max
+    [~,I] = max(matFby2');
+    velocities = v_array(I);
+    velocities = velocities(velocities<200)
+    times = time_array(velocities<200)
+    
+    subplot(2,1,2);
+    plot(times,velocities)
+    xlabel('Velocity(m/s)','FontName','Times')
+    ylabel('Time(s)','FontName','Times')
+    set(gca,'FontSize',10,'FontWeight','bold');
 end
 

@@ -1,1 +1,6 @@
 *.asv
+*.xml
+*.iml
+*.wav
+*.mat
+*.fig

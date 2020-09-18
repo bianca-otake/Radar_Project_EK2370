@@ -40,27 +40,26 @@ xlabel('velocity(m/s)');
 xlim([0 30])
 ylabel('Time(s)')
 colorbar
-%% 
+%% find local maximas
 
-    Nmax =3
-    [Tp,~] = islocalmax(matFby2,2,'MaxNumExtrema',Nmax);
-    ranges = zeros(size(Tp,1),Nmax);
+    Nmax =2
+    [Tp,~] = islocalmax(matFby2(:,5:1e2),2,'MaxNumExtrema',Nmax,'MinSeparation',10);
+    velocities = zeros(size(Tp,1),Nmax);
     for i = 1:size(Tp,1)
-       ranges(i,:) = range_array(Tp(i,:)) ;
+       velocities(i,:) = v_array(Tp(i,:)) ;
     end
     figure()
     subplot(2,1,1);
     hold on
     for i = 1:Nmax 
-        scatter(time_array,ranges(:,i),'x')
+        scatter(time_array(1:1:length(velocities)),velocities(:,i),'x')
     end
-    xlabel('Range(m)','FontName','Times')
-    ylabel('Time(s)','FontName','Times')
+    ylabel('Velocity(m/s)','FontName','Times')
+    xlabel('Time(s)','FontName','Times')
     title('FMCW Radar Local and global maximum','FontName','Times');
     set(gca,'FontSize',10,'FontWeight','bold');
     ylim_inf = 0;
     ylim_sup = 100;
-    ylim([ylim_inf ylim_sup])  
     % global max
     [~,I] = max(matFby2');
     velocities = v_array(I);
@@ -69,8 +68,8 @@ colorbar
     
     subplot(2,1,2);
     plot(times,velocities)
-    xlabel('Velocity(m/s)','FontName','Times')
-    ylabel('Time(s)','FontName','Times')
+    ylabel('Velocity(m/s)','FontName','Times')
+    xlabel('Time(s)','FontName','Times')
     set(gca,'FontSize',10,'FontWeight','bold');
 end
 

@@ -1,10 +1,5 @@
 %% Real  time CW audio processing
 clc, clear all, close all
-% sourceChoice = {'recorded'|'live'}
-sourceChoice = 'live';
-
-load('velocity_data.mat')
-% data = data(:,1);
 
 recordedData = []
 t_array = [0]
@@ -46,6 +41,5 @@ title('Sampled Signal')
 xlabel('Sample number [-]')
 
 CW_spectrogram(recordedData)
-% run processing algoritphm for CW radar
 
 

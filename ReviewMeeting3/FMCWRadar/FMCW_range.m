@@ -83,7 +83,7 @@ function [times, ranges] = FMCW_range(data)
     R_max = N*delta_R/2;  
 
     T_max = length(data(:,1))/fs;
-    range_array = linspace(0,R_max,N);
+    range_array = linspace(0,R_max,2*N);
     time_array = linspace(0,T_max,k);
 
     %Plot signal

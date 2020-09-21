@@ -21,12 +21,16 @@ while f == 0
     t = t + Tp 
     recordblocking(recObj,Tp);
     audioData = recObj.getaudiodata;
-    [time, ranges] = FMCW_range(audioData);
-    t_array = [t_array;time' + t_array(end)]
-    r_array = [r_array; ranges'];
     recordedData = [recordedData;audioData];
+
+    [time, ranges] = FMCW_range(recordedData);
+%     t_array = [t_array;time' + t_array(end)]
+%     r_array = [r_array; ranges'];
+%     recordedData = [recordedData;audioData];
     figure(1)
-    plot(t_array,r_array)
+%     plot(t_array,r_array)
+    plot(time,ranges)
+
     isKeyPressed = ~isempty(get(h,'CurrentCharacter'));
     if isKeyPressed
      break
@@ -42,6 +46,6 @@ xlabel('Sample number [-]')
 FMCW_spectrogram_range(recordedData)
 % [time, ranges] = FMCW_range(recordedData);
 figure(4);
-plot(t_array,r_array)
+% plot(t_array,r_array)
 
 

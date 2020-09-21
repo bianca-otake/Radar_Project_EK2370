@@ -1,7 +1,7 @@
 clear all
 close all
 
-  data = audioread('single_target_FMCW.wav');
+  data = audioread('walking_opposite_ver3.wav');
 % data = audioread('walking_opposite_ver3.wav');
 % data = recordedData;
 
@@ -26,7 +26,23 @@ function [times, ranges] = FMCW_range2(data)
             sync_pulse(i)=0;
         end  
     end
-    
+    upChirpStart = 0;   
+    upChirpEnd = 0;
+    for i=1:length(sync_pulse)-1
+        if sync_pulse(i + 1) == 1 && sync_pulse(i) <= 0
+            upChirpStart = i + 1 ;
+        elseif  sync_pulse(i) == 1 && sync_pulse(i + 1) <= 0
+            upChirpEnd = i;
+            if upChirpStart ~=  0 && upChirpEnd ~= 0
+                diff = upChirpEnd - upChirpStart
+                if diff < 700
+                    sync_pulse(upChirpStart:upChirpEnd) = 0 ;
+                end
+                upChirpStart = 0;
+                upChirpEnd = 0;
+            end
+        end
+    end
     
     
     % Calculate # of up-chirp
@@ -38,7 +54,7 @@ function [times, ranges] = FMCW_range2(data)
     end
 
     % Matrix data
-    N = 916;
+    N = 1100;
     data_mat = zeros(k,N);% be careful
 
     column = 0;
@@ -53,6 +69,8 @@ function [times, ranges] = FMCW_range2(data)
             end
         end 
     end
+    
+
     
     % To Superimpose the data over syn_pulse
    

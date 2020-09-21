@@ -1,4 +1,5 @@
 function c = FMCW_spectrogram_range(data)
+    close all
     %Constants
     %
     c = 3*10^8;   %m/s
@@ -11,6 +12,7 @@ function c = FMCW_spectrogram_range(data)
 
 
     %Realize the binary sync pulse %%ERROR: forget to (-1) the pulse
+
     for i=1:length(sync_pulse)
         if(sync_pulse(i) > 0.1) 	%This threshold is used in order to avoid oscillations of the analog signal
            sync_pulse(i) = 1; 
@@ -20,7 +22,27 @@ function c = FMCW_spectrogram_range(data)
             sync_pulse(i)=0;
         end  
     end
-
+    sp = sync_pulse;
+    figure; subplot(1,2,1); plot(sync_pulse(10000:60000));
+    
+        upChirpStart = 0;   
+    upChirpEnd = 0;
+    for i=1:length(sync_pulse)-1
+        if sync_pulse(i + 1) == 1 && sync_pulse(i) <= 0
+            upChirpStart = i + 1 ;
+        elseif  sync_pulse(i) == 1 && sync_pulse(i + 1) <= 0
+            upChirpEnd = i;
+            if upChirpStart ~=  0 && upChirpEnd ~= 0
+                diff = upChirpEnd - upChirpStart
+                if diff < 700
+                    sync_pulse(upChirpStart:upChirpEnd) = 0 ;
+                end
+                upChirpStart = 0;
+                upChirpEnd = 0;
+            end
+        end
+    end
+    subplot(1,2,2); plot(sync_pulse-sp)
     % Calculate # of up-chirp
     k = 0;  %it indicates the # of up-chirp (# of rows of the matrix)
     for i = 2:length(data(:,1)) 
@@ -30,7 +52,7 @@ function c = FMCW_spectrogram_range(data)
     end
 
     % Matrix data
-    N = 916;
+    N = 1100;
     data_mat = zeros(k,N);% be careful
 %     down_data_mat = zeros(kd,N);% be careful
 
@@ -54,20 +76,20 @@ function c = FMCW_spectrogram_range(data)
     end
 
     % Perform 2-pulse MTI
-%     copy = data_mat;
-%     for j = 2:k
-%         for i = 1:N
-%             data_mat(j,i) = copy(j,i)-copy(j-1,i); 
-%         end
-%     end
-
-    % Perform 3-pulse MTI
     copy = data_mat;
-    for j = 3:k
+    for j = 2:k
         for i = 1:N
-            data_mat(j,i) = copy(j,i) - copy(j-1,i) - (copy(j-1,i) - copy(j-2,i));
+            data_mat(j,i) = copy(j,i)-copy(j-1,i); 
         end
     end
+
+    % Perform 3-pulse MTI
+%     copy = data_mat;
+%     for j = 3:k
+%         for i = 1:N
+%             data_mat(j,i) = copy(j,i) - copy(j-1,i) - (copy(j-1,i) - copy(j-2,i));
+%         end
+%     end
     %Perform IFFT
     for i = 1:length(data_mat(:,1))
         mat_time(i,:) = ifft(data_mat(i,:),4*N);
@@ -126,26 +148,26 @@ function c = FMCW_spectrogram_range(data)
     hold off;
     
     
-    Nmax = 2
-    [Tp,~] = islocalmax(mat_time,2,'MaxNumExtrema',Nmax);
-
-    ranges = zeros(size(Tp,1),Nmax);
-    for i = 1:size(Tp,1)
-       ranges(i,:) = range_array(Tp(i,:)) ;
-    end
-    figure()     
-    hold on
-    for i = 1:Nmax 
-        scatter(time_array,ranges(:,i),'o')
-    end
-    
-    xlabel('Range(m)','FontName','Times')
-    ylabel('Time(s)','FontName','Times')
-    title('RTI with clutter rejection, f_{start} = 2.408 GHz , f_{stop} = 2.495 GHz','FontName','Times');
-    set(gca,'FontSize',10,'FontWeight','bold');
-    ylim_inf = 0;
-    ylim_sup = 100;
-    ylim([ylim_inf ylim_sup])
+%     Nmax = 2
+%     [Tp,~] = islocalmax(mat_time,2,'MaxNumExtrema',Nmax);
+% 
+%     ranges = zeros(size(Tp,2),Nmax);
+%     for i = 1:size(Tp,1)
+%        ranges(i,:) = range_array(Tp(i,:)) ;
+%     end
+%     figure()     
+%     hold on
+%     for i = 1:Nmax 
+%         scatter(time_array,ranges(:,i),'o')
+% %     end
+%     
+%     xlabel('Range(m)','FontName','Times')
+%     ylabel('Time(s)','FontName','Times')
+%     title('RTI with clutter rejection, f_{start} = 2.408 GHz , f_{stop} = 2.495 GHz','FontName','Times');
+%     set(gca,'FontSize',10,'FontWeight','bold');
+%     ylim_inf = 0;
+%     ylim_sup = 100;
+%     ylim([ylim_inf ylim_sup])
     
     
     [~,I] = max(mat_time')

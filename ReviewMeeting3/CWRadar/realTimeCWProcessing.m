@@ -19,7 +19,7 @@ h = figure(1);
 t = 0
 while f == 0 
     t = t + Tp 
-    recordblocking(recObj,1);
+    recordblocking(recObj,Tp);
     audioData = recObj.getaudiodata;
     
     [time, velocities ] = CW_cont(audioData);
@@ -35,6 +35,8 @@ while f == 0
      break
     end
 end
+
+
 figure(2)
 plot(recordedData)
 title('Sampled Signal')

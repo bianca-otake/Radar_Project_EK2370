@@ -13,7 +13,7 @@ nChannels = 2 ;
 ID = -1; % default audio input device 
 recObj = audiorecorder(Fs,nBits,nChannels,ID);
 
-Tp = 1 % 0.3 seconds 
+Tp = 1 % seconds
 f = 0
 h = figure(1);
 t = 0
@@ -21,7 +21,6 @@ while f == 0
     t = t + Tp 
     recordblocking(recObj,Tp);
     audioData = recObj.getaudiodata;
-    
     [time, ranges] = FMCW_range(audioData);
     t_array = [t_array;time' + t_array(end)]
     r_array = [r_array; ranges'];

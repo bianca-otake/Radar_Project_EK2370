@@ -72,12 +72,12 @@ function c = FMCW_spectrogram_range(data)
     for i = 1:length(data_mat(:,1))
         mat_time(i,:) = ifft(data_mat(i,:),4*N);
     end
-
+    mat_time = 20*log10(abs(mat_time));
     %Division of matrix by 2 and normalization
     mat_time = mat_time(:,1:(length(mat_time(1,:))/2)); %divides the matrix by 2
     mat_time = mat_time - max(max(mat_time));
 
-    mat_time = 20*log10(abs(mat_time));
+  
     
     %calculate range resolution
     delta_f = end_f-start_f;
@@ -126,19 +126,20 @@ function c = FMCW_spectrogram_range(data)
     hold off;
     
     
-    Nmax = 4
+    Nmax = 2
     [Tp,~] = islocalmax(mat_time,2,'MaxNumExtrema',Nmax);
 
     ranges = zeros(size(Tp,1),Nmax);
     for i = 1:size(Tp,1)
        ranges(i,:) = range_array(Tp(i,:)) ;
     end
-    figure()
+    figure()     
     hold on
     for i = 1:Nmax 
         scatter(time_array,ranges(:,i),'o')
     end
-     xlabel('Range(m)','FontName','Times')
+    
+    xlabel('Range(m)','FontName','Times')
     ylabel('Time(s)','FontName','Times')
     title('RTI with clutter rejection, f_{start} = 2.408 GHz , f_{stop} = 2.495 GHz','FontName','Times');
     set(gca,'FontSize',10,'FontWeight','bold');

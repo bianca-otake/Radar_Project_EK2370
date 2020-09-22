@@ -24,7 +24,6 @@ matFby2 = mat_freq(:,1:length(mat_freq)/2);
 max_value_freq = max(max(matFby2));
 matFby2 = matFby2 - max_value_freq;
 
-
 fd_max = fs/2;
 fd_resolution = fd_max/length(matFby2);
 

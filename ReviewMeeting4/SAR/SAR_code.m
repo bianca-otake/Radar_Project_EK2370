@@ -198,7 +198,7 @@ trunc_image(:,ii) = (trunc_image(:,ii)').*(abs(downrange*1)).^(3/2);
 end
 trunc_image= 20 * log10(abs(trunc_image));
 imagesc(crossrange, downrange, trunc_image, [max(max(trunc_image))-40, max(max(trunc_image))-0]);
-colormap('default');
+colormap('hot');
 axis equal;
 colorbar;
 

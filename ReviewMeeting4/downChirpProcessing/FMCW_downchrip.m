@@ -175,6 +175,12 @@ function [times, ranges] = FMCW_range2(data)
     f_doppler_max = fs;
     v_max = lamdha*f_doppler_max/4;
     velocity_array = lamdha*doppler_frequency/4;
+    n=length( velocity_array )
+    for i=2:n
+        if (abs(velocity_array(i)-velocity_array(i-1))>6)
+            velocity_array(i)=velocity_array(i-1);
+        end
+    end
 %  velocity_array = linspace(0,v_max,n3);
      
     [M,~] = size(mat_time_dopper);
@@ -270,10 +276,22 @@ function [times, ranges] = FMCW_range2(data)
 %     xlim([xlim_inf xlim_sup])
 %     colorbar
     
+    load('ref_data_FDM.mat')
     figure(6)
     plot(time_array,zeros(size(velocity_5)));
     hold on
     plot(time_array,velocity_5);
+    plot(time_array,Ref_velocity_FDM,'--');
+    ylabel('Velocity(m/s)','FontName','Times');
+    xlim([0 max(time_array)]);
+    xlabel('Time(s)','FontName','Times')
+    legend('Zero crossing','Up-down chirp data','Finite Difference Method')
+    hold off
+    
+    figure(10)
+    plot(time_array,zeros(size(velocity_5)));
+    hold on
+    plot(time_array,velocity);
     ylabel('Velocity(m/s)','FontName','Times');
     xlim([0 max(time_array)]);
     xlabel('Time(s)','FontName','Times')
@@ -333,7 +351,7 @@ function [times, ranges] = FMCW_range2(data)
 % %     xlim_inf = 0;
 % %     xlim_sup = 20;
 % %     xlim([xlim_inf xlim_sup])
-%     colorbar
+%      colorbar
     grid on
 end
 

@@ -2,6 +2,8 @@ clear all
 close all
 
 data = audioread('single_target_FMCW.wav');
+% load('fmcw_velocity_accel.mat');
+% data = r_array;
 %   data = audioread('Range_Test_File.m4a');
 % data = audioread('walking_opposite_ver3.wav');
 % data = recordedData;
@@ -14,12 +16,12 @@ function [times, ranges] = FMCW_range2(data)
     c = 3*10^8;   %m/s
     start_f = 2.408*10^9;   %Hz
     end_f = 2.495*10^9;   %Hz
-    center_f = (start_f+end_f)/2;
-    lamdha = c/center_f;
-    data = -data;
-    sync_pulse = data(:,2);
-    data_values = data(:,1);
-    fs = 44100;
+    center_f = (start_f+end_f)/2; % center frequency
+    lamdha = c/center_f; % waavelength
+    data = -data; % inverse operation after sound card
+    sync_pulse = data(:,2); % Syn pulse 
+    data_values = data(:,1); % main data
+    fs = 44100; % sampling frequency
 
     %Realize the binary sync pulse %%ERROR: forget to (-1) the pulse
     for i=1:length(sync_pulse)
@@ -43,24 +45,23 @@ function [times, ranges] = FMCW_range2(data)
         end
     end
     % Matrix data
-    N = 882;%916;
+   N = 882;%916; % Number of samples in during sync pulse ON
    data_mat = zeros(k+m,N);% be careful
-   % data_mat_down = zeros(m,N); % 
-    
-    column = 0;
+  
+   column = 0;
     row = 1;
     for i = 1:(length(data(:,1))-1)
         column = column + 1;
-        if (sync_pulse(i) == 1)
-            data_mat(row,column) = data_values(i);
+        if (sync_pulse(i) == 1) % for Up chirp data
+            data_mat(row,column) = data_values(i); % data into matrix form
             
             if (sync_pulse(i+1) ~= 1)
-                row = row + 1;
-                column = 0;
+                row = row + 1; % change to next row
+                column = 0; % reinitializing coloumb to be zero
             end
             
-        elseif (sync_pulse(i) == -1)
-            data_mat(row,column) = data_values(i);
+        elseif (sync_pulse(i) == -1)% similary for down chirp data
+            data_mat(row,column) = data_values(i); 
             if (sync_pulse(i+1) ~= -1 )
                 row = row + 1;
                 column = 0;
@@ -71,17 +72,9 @@ function [times, ranges] = FMCW_range2(data)
     for i=1:length(data_mat)/2
         data_down(i,:) = data_mat(2*i-1,:); % Down chirp data
         data_up(i,:) = data_mat(2*i,:); % Up chirp data
-%         [~,n] = max(data_down(i,:));
-%         [~,n1] = max(data_up(i,:));
-%         index(i)=n-n1;
-%         doppler_frequency(i)= (n-n1)*fs/N;
         data_doppler(i,:) = (data_down(i,:)-data_up(i,:));
-%         [~,n3]=max(data_doppler(i,:));
-%         index(i)=n3;
     end
     
-    
-      
     %Subtract the mean of each column from each column (MS clutter rejection)
     for i = 1:N
         b = sum(data_doppler(:,i))/length(data_doppler(:,i));
@@ -111,12 +104,14 @@ function [times, ranges] = FMCW_range2(data)
             data_doppler(j,i) = copy(j,i) - copy(j-1,i) - (copy(j-1,i) - copy(j-2,i));
         end
     end
+    
     copy = data_up;
     for j = 3:k
         for i = 1:N
             data_up(j,i) = copy(j,i) - copy(j-1,i) - (copy(j-1,i) - copy(j-2,i));
         end
     end
+    
     copy = data_down;
     for j = 3:k
         for i = 1:N
@@ -151,16 +146,16 @@ function [times, ranges] = FMCW_range2(data)
     
     %[m,n]=size(mat_time_dopper);
     [m3,n3]= size(mat_time_down);
-    for i=1:m3
+    for i=2:m3
         [~,n] = max(mat_time_down(i,:));
         [~,n1] = max(mat_time_up(i,:));
-        if(abs(n-n1)>5)
+        if(abs(n-n1)>5) % max doppler frequency change can not be more that 5*fs/n3
             %n-n1=10;
-            index(i)=4;
+            index(i)=index(i-1);
         else 
             index(i)=n-n1;
         end
-        doppler_frequency(i)= (n-n1)*fs/n3;
+        doppler_frequency(i)= (n-n1)*fs/n3; % mapping the index value to frequency while considering the max doppler frequency tobe fs/2
     end
     
     %calculate range resolution
@@ -168,140 +163,101 @@ function [times, ranges] = FMCW_range2(data)
     delta_R = c/(2*delta_f); 
 
     %calculate max range
-    [~,n] = size(data_doppler);
-    Ts = n/fs;
     R_max = N*delta_R/2; 
-    R_max_2 = c*Ts*fs/(4*delta_f);
-    f_doppler_max = fs;
-    v_max = lamdha*f_doppler_max/4;
-    velocity_array = lamdha*doppler_frequency/4;
-    n=length( velocity_array )
+    velocity_array = lamdha*doppler_frequency/4; % same as used in CW RADAR
+    n = length( velocity_array );
     for i=2:n
-        if (abs(velocity_array(i)-velocity_array(i-1))>6)
+        if (abs(velocity_array(i)-velocity_array(i-1))>6) % Condition max velocity can not be more than 6 m/s for normal human
             velocity_array(i)=velocity_array(i-1);
         end
     end
-%  velocity_array = linspace(0,v_max,n3);
-     
-    [M,~] = size(mat_time_dopper);
     
+    [M,~] = size(mat_time_dopper);
     T_max = length(data(:,1))/fs;
-%     range_array = linspace(0,R_max,N);
-%     range_array_2 = linspace(0,R_max_2,N);
+    range_array = linspace(0,R_max,N);
     time_array = linspace(0,T_max,M);
     
     % -- Velocity Calculation - Finite Different Method
-%     [~,I] = max(mat_time_up');
-%     [~,I2] = max(mat_time_dopper');
-%     ranges2= range_array_2(I)/2;
-%     ranges = range_array(I)/2;
-%     ranges_2 = smoothdata(ranges);
-%     ranges2_2 = smoothdata(ranges2);
+    [~,I] = max(mat_time_up');
+    [~,I2] = max(mat_time_dopper');
+    ranges_up= range_array(I)/2;
+    ranges_down = range_array(I2)/2;
+    ranges_up_2 = smoothdata(ranges_up);
+    ranges_down_2 = smoothdata(ranges_down);
+
     velocity = velocity_array;
     velocity_2 = smoothdata(velocity);
     velocity_3 = smooth(velocity_2);
     velocity_4 = smoothdata(velocity_3);
     velocity_5 = smooth(velocity_4);
     velocity_6 = smoothdata(velocity_5);
-%     %ranges = ranges(1:length(time_array));
-%      velocity_1 = smooth(velocity);
-%      velocity_2 = smoothdata(velocity_1);
-%      velocity_3 = smooth(velocity_2);
-%     times = time_array;
-%     for i=2:length(ranges_1)
-%         velocity(i)=(ranges_1(1,i)-ranges_1(1,i-1))/(time_array(i)-time_array(i-1));
+
+%%% Finite difference method    
+%    for i=2:length(ranges_up_2)
+%         velocity(i)=(ranges_up_2(1,i)-ranges_up_2(1,i-1))/(time_array(i)-time_array(i-1));
 %     end
 %     velocity_1 = smooth(velocity);
 %     velocity_2 = smoothdata(velocity_1);
     
     
-% %    Plot signal
-%     figure1 = figure;
-%     plot(-data(:,1));
-%     xlabel('Data sample number','FontName','Times');
-%     xlim([0 4.5*10^4]);
-%     ylim([-0.4 0.4]);
-%     ylabel('Amplitude','FontName','Times');
-%     title('Sampled down-converted data','FontName','Times');
-%     set(gca,'FontSize',10,'FontWeight','bold');
-
-%     figure2 = figure; hold on;
-%     plot(-data(:,2));
-%     plot(zeros(3*10^4,1),'--k','LineWidth',2);
-%     xlabel('Data sample number','FontName','Times');
-%     xlim([0 3*10^4]);
-%     ylim([-1.15 1.15]);
-%     ylabel('Amplitude','FontName','Times');
-%     title('Sync data','FontName','Times');
-%     set(gca,'FontSize',10,'FontWeight','bold');
-%     text1 = text(2.6*10^4,0.1,'Threshold','FontSize',10,'FontWeight','bold','FontName','Times');
-%     hold off;
-
-%     figure3 = figure; hold on;
-%     plot(sync_pulse);
-%     plot(zeros(3*10^4,1),'--k','LineWidth',2);
-%     plot(-data(:,1),'r')
-%     legend('Sync_Pulse',' ','Data')
-%     xlabel('Data sample number','FontName','Times');
-%     xlim([0 3*10^4]);
-%     ylim([-1.15 1.15]);
-%     ylabel('Amplitude','FontName','Times');
-%     title('Sync data','FontName','Times');
-%     set(gca,'FontSize',10,'FontWeight','bold');
-%     text2 = text(2.6*10^4,0.1,'Threshold','FontSize',10,'FontWeight','bold','FontName','Times');
-%     hold off;
-    
-%     
-%     figure(5)
-%     imagesc(range_array,time_array,mat_time_up,[-50,0])
-%     %imagesc(range_array,time_array,mat_time_down,[-50,0])
-%     xlabel('Range(m)','FontName','Times')
-%     ylabel('Time(s)','FontName','Times')
-%     title('RTI with clutter rejection, f_{start} = 2.408 GHz , f_{stop} = 2.495 GHz','FontName','Times');
-%     set(gca,'FontSize',10,'FontWeight','bold');
-%     xlim_inf = 0;
-%     xlim_sup = 100;
-%     xlim([xlim_inf xlim_sup])
-%     colorbar
-%     
-%     figure(6)
-%     %imagesc(range_array,time_array,mat_time_up,[-50,0])
-%     imagesc(range_array,time_array,mat_time_down,[-50,0])
-%     xlabel('Range(m)','FontName','Times')
-%     ylabel('Time(s)','FontName','Times')
-%     title('RTI with clutter rejection, f_{start} = 2.408 GHz , f_{stop} = 2.495 GHz','FontName','Times');
-%     set(gca,'FontSize',10,'FontWeight','bold');
-%     xlim_inf = 0;
-%     xlim_sup = 100;
-%     xlim([xlim_inf xlim_sup])
-%     colorbar
-    
-    load('ref_data_FDM.mat')
+    figure(5)
+    imagesc(range_array,time_array,mat_time_up,[-50,0]) % Up chirp plot
+    %imagesc(range_array,time_array,mat_time_down,[-50,0])
+    xlabel('Range(m)','FontName','Times')
+    ylabel('Time(s)','FontName','Times')
+    title('RTI with clutter rejection, f_{start} = 2.408 GHz , f_{stop} = 2.495 GHz','FontName','Times');
+    set(gca,'FontSize',10,'FontWeight','bold');
+    xlim_inf = 0;
+    xlim_sup = 100;
+    xlim([xlim_inf xlim_sup])
+    colorbar
+     
     figure(6)
+    %imagesc(range_array,time_array,mat_time_up,[-50,0])
+    imagesc(range_array,time_array,mat_time_down,[-50,0]) % Down chirp plot
+    xlabel('Range(m)','FontName','Times')
+    ylabel('Time(s)','FontName','Times')
+    title('RTI with clutter rejection, f_{start} = 2.408 GHz , f_{stop} = 2.495 GHz','FontName','Times');
+    set(gca,'FontSize',10,'FontWeight','bold');
+    xlim_inf = 0;
+    xlim_sup = 100;
+    xlim([xlim_inf xlim_sup])
+    colorbar
+    
+    figure(7)
+    load('ref_data_FDM.mat')
     plot(time_array,zeros(size(velocity_5)));
     hold on
-    plot(time_array,velocity_5);
-    plot(time_array,Ref_velocity_FDM,'--');
-    ylabel('Velocity(m/s)','FontName','Times');
+    plot(time_array,velocity_3);
+    plot(time_array,Ref_velocity_FDM,'--','LineWidth',4);
+    ylabel('Velocity (m/s)','FontName','Times');
     xlim([0 max(time_array)]);
     xlabel('Time(s)','FontName','Times')
+    set(gca,'FontSize',10,'FontWeight','bold');
     legend('Zero crossing','Up-down chirp data','Finite Difference Method')
+    grid on
     hold off
     
-    figure(10)
-    plot(time_array,zeros(size(velocity_5)));
-    hold on
-    plot(time_array,velocity);
-    ylabel('Velocity(m/s)','FontName','Times');
-    xlim([0 max(time_array)]);
-    xlabel('Time(s)','FontName','Times')
-    hold off
-%  
-%     figure(7)
-%    % plot(time_array,velocity_2);
+%     figure(10)
+%     plot(time_array,zeros(size(velocity_5)));
+%     hold on
+%     plot(time_array,velocity);
 %     ylabel('Velocity(m/s)','FontName','Times');
 %     xlim([0 max(time_array)]);
 %     xlabel('Time(s)','FontName','Times')
+%     hold off
+%  
+    figure(8)
+    plot(time_array,ranges_up_2);
+    hold on
+    plot(time_array,ranges_down_2);
+    ylabel('Range(m)','FontName','Times');
+    xlim([0 max(time_array)]);
+    xlabel('Time(s)','FontName','Times')
+    legend('Up-chirp data','Down-chirp data')
+    set(gca,'FontSize',10,'FontWeight','bold');
+    hold off
+    grid on
 %     
 %     figure(9)
 %     yyaxis left
@@ -315,44 +271,9 @@ function [times, ranges] = FMCW_range2(data)
 %     xlim([0 max(time_array)]);
 %     xlabel('Time(s)','FontName','Times')
     
-    
-%     figure(8)
-%     signal_to_plot = data_values(:,1).*sync_pulse;
-%     hold on
-%     p1 = plot(signal_to_plot,'b')
-%     p2 = plot(sync_pulse,'r')
-%     xlim ([0 4.5*10^4])
-%     xlabel('Data sample number','FontName','Times')
-%     xlim([0 4.5*10^4])
-%     ylabel('Amplitude','FontName','Times')
-%     set(gca,'FontSize',10,'FontWeight','bold')
-%     legend([p1 p2], 'Signal', 'Sync Pulse','Location','southeast')
-%     hold off
-%     
-%     figure(10)
-%     plot(time_array,ranges_2);
-%     ylabel('Range(m)','FontName','Times');
-%     xlim([0 max(time_array)]);
-%     xlabel('Time(s)','FontName','Times')
-%     
-%     figure(11)
-%     plot(time_array,ranges2_2);
-%     ylabel('Range(m)','FontName','Times');
-%     xlim([0 max(time_array)]);
-%     xlabel('Time(s)','FontName','Times')
 
-%     figure(12)
-%     %imagesc(range_array,time_array,mat_time_up,[-50,0])
-%     imagesc(velocity_array,time_array,mat_time_dopper)%,[-50,0])
-%     xlabel('Velocity(m/s)','FontName','Times')
-%     ylabel('Time(s)','FontName','Times')
-%     title('RTI with clutter rejection, f_{start} = 2.408 GHz , f_{stop} = 2.495 GHz','FontName','Times');
-%     set(gca,'FontSize',10,'FontWeight','bold');
-% %     xlim_inf = 0;
-% %     xlim_sup = 20;
-% %     xlim([xlim_inf xlim_sup])
-%      colorbar
-    grid on
+
+
 end
 
 
